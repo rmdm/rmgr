@@ -31,8 +31,11 @@ const redis = await resources.add(
     (redisClient, cb) => redisClient.quit(cb)
 )
 
-const app = await resources.add(
-    (cb) => express().listen(0, cb),
+const server = await resources.add(
+    (cb) => {
+        const server = express().listen(0)
+        server.once('listening', function () { cb(null, server) })
+    },
     (server, cb) => server.close(cb)
 )
 
