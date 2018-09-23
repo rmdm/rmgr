@@ -33,7 +33,7 @@ const redis = await resources.add(
 
 const app = await resources.add(
     (cb) => express().listen(0, cb),
-    (app, cb) => server.close(cb)
+    (server, cb) => server.close(cb)
 )
 
 process.on('SIGINT', async function () {
