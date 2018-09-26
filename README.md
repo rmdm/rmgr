@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/rmdm/rmgr.svg?branch=master)](https://travis-ci.org/rmdm/rmgr)
+[![Coverage Status](https://coveralls.io/repos/github/rmdm/rmgr/badge.svg?branch=master)](https://coveralls.io/github/rmdm/rmgr?branch=master)
+
 rmgr
 ====
 
