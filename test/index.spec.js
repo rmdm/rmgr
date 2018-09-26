@@ -1,4 +1,5 @@
 const assert = require('assert-match')
+const { type } = assert.matchers
 const sinon = require('sinon')
 
 const Resources = require('../index')
@@ -13,6 +14,32 @@ describe('resource manager', function () {
 
     describe('add method', function () {
 
+        it('throws when resource init is not a function', async function () {
+
+            try {
+
+                await resources.add()
+
+                throw new Error('Should not be called.')
+
+            } catch (err) {
+                assert.strictEqual(err.message, 'init must be a function.')
+            }
+        })
+
+        it('throws when resource dispose is not a function', async function () {
+
+            try {
+
+                await resources.add(sinon.stub())
+
+                throw new Error('Should not be called.')
+
+            } catch (err) {
+                assert.strictEqual(err.message, 'dispose must be a function.')
+            }
+        })
+
         it('returns object created by the initializer', async function () {
 
             const o = {}
@@ -24,8 +51,22 @@ describe('resource manager', function () {
             assert.strictEqual(result, o)
         })
 
-        it('calls dispose methods added for all previously added resources '
-            + 'when init fails', async function () {
+        it('passes callback to init function for convenience',
+            async function () {
+
+            const o = {}
+
+            const init = function (cb) {
+                setTimeout(() => cb(null, o), 10)
+            }
+
+            const result = await resources.add(init, sinon.stub())
+
+            assert.strictEqual(result, o)
+        })
+
+        it('calls dispose methods in the reverse order for all previously '
+            + 'added resources when init fails', async function () {
 
             const initError = new Error('Init error.')
 
@@ -44,40 +85,45 @@ describe('resource manager', function () {
 
             } catch (err) {
                 assert.strictEqual(err, initError)
-                assert.deepStrictEqual(dispose.args, [
-                    [ 3 ],
-                    [ 2 ],
-                    [ 1 ],
-                ])
+                assert.deepStrictEqual(dispose.args, [ [ 3 ], [ 2 ], [ 1 ] ])
             }
+        })
+
+        it('does not throw when closing', async function () {
+
+            const init1 = sinon.stub().resolves(timeout(10, 1))
+            const init2 = sinon.stub().resolves(timeout(10, 2))
+            const dispose = sinon.stub().resolves(timeout(10))
+
+            resources.add(init1, dispose)
+
+            const close = resources.close()
+
+            resources.add(init2, dispose)
+
+            await close
         })
 
         it('throws when closed', async function () {
 
-            await resources.close()
+            const init1 = sinon.stub().resolves(timeout(10, 1))
+            const init2 = sinon.stub().resolves(timeout(10, 2))
+            const dispose = sinon.stub().resolves(timeout(10))
+
+            resources.add(init1, dispose)
+
+            const close = resources.close()
+
+            await close
 
             try {
 
-                await resources.add(sinon.stub())
+                await resources.add(init2, dispose)
 
                 throw new Error('Should not be called.')
 
             } catch (err) {
-                assert.strictEqual(err.message, 'rmgr instance already closed.')
-            }
-        })
-
-        it('throws when added dispose method is not a function',
-            async function () {
-
-            try {
-
-                await resources.add(sinon.stub())
-
-                throw new Error('Should not be called.')
-
-            } catch (err) {
-                assert.strictEqual(err.message, 'dispose must be a function.')
+                assert.strictEqual(err.message, 'rmgr instance closed.')
             }
         })
 
@@ -105,10 +151,9 @@ describe('resource manager', function () {
 
             } catch (err) {
                 assert.strictEqual(err, initError)
-                assert.strictEqual(err.other.length, 1)
-                assert.strictEqual(err.other[0].other.length, 1)
-                assert.strictEqual(err.other[0], disposeError3)
-                assert.strictEqual(err.other[0].other[0], disposeError1)
+                assert.strictEqual(err.closeError, disposeError3)
+                assert.strictEqual(err.closeError.other.length, 1)
+                assert.strictEqual(err.closeError.other[0], disposeError1)
 
                 assert.deepStrictEqual(dispose3.args, [ [ 3 ] ])
                 assert.deepStrictEqual(dispose2.args, [ [ 2 ] ])
@@ -116,11 +161,114 @@ describe('resource manager', function () {
             }
         })
 
+        it('stops initializing resources when some resource initialization '
+            + 'fails, even when adding in parallel', async function () {
+
+            const initErr = new Error('Init error.')
+
+            const init1 = sinon.stub().resolves(timeout(100, 1))
+            const init2 = sinon.stub().callsFake(async function () {
+                await timeout(50)
+                throw initErr
+            })
+            const init3 = sinon.stub().resolves(3)
+            const init4 = sinon.stub().resolves(4)
+            const dispose = sinon.stub()
+
+            resources.add(init1, dispose)
+            const error = resources.add(init2, dispose)
+
+            await timeout(10)
+
+            resources.add(init3, dispose)
+
+            await timeout(50)
+
+            resources.add(init4, dispose)
+
+            try {
+
+                await error
+
+                throw new Error('Should not be called.')
+
+            } catch (err) {
+                assert.strictEqual(err, initErr)
+                assert.deepStrictEqual(dispose.args, [ [ 1 ], [ 3 ] ])
+                assert(init4.notCalled)
+            }
+        })
+
+        it('properly releases initialized resources before rejecting '
+            + 'Promise.all', async function () {
+
+            const initErr = new Error('Init error.')
+
+            const init1 = sinon.stub().resolves(timeout(100, 1))
+            const init2 = sinon.stub().callsFake(async function () {
+                await timeout(50)
+                throw initErr
+            })
+            const init3 = sinon.stub().resolves(3)
+            const init4 = sinon.stub().resolves(4)
+            const dispose = sinon.stub()
+
+            try {
+
+                await Promise.all([
+                    resources.add(init1, dispose),
+                    resources.add(init2, dispose),
+                    resources.add(init3, dispose),
+                    resources.add(init4, dispose),
+                ])
+
+                throw new Error('Should not be called.')
+
+            } catch (err) {
+                assert.strictEqual(err, initErr)
+                assert.deepStrictEqual(dispose.args, [ [ 1 ], [ 4 ], [ 3 ] ])
+            }
+        })
+
+        it('properly releases initialized resources before rejecting '
+            + 'Promise.all with multiple errors', async function () {
+
+            const initErr1 = new Error('Init error 1.')
+            const initErr2 = new Error('Init error 2.')
+
+            const init1 = sinon.stub().resolves(timeout(100, 1))
+            const init2 = sinon.stub().callsFake(async function () {
+                await timeout(50)
+                throw initErr1
+            })
+            const init3 = sinon.stub().callsFake(async function () {
+                await timeout(100)
+                throw initErr2
+            })
+            const init4 = sinon.stub().resolves(4)
+            const dispose = sinon.stub()
+
+            try {
+
+                await Promise.all([
+                    resources.add(init1, dispose),
+                    resources.add(init2, dispose),
+                    resources.add(init3, dispose),
+                    resources.add(init4, dispose),
+                ])
+
+                throw new Error('Should not be called.')
+
+            } catch (err) {
+                assert.strictEqual(err, initErr1)
+                assert.deepStrictEqual(dispose.args, [ [ 1 ], [ 4 ] ])
+            }
+        })
     })
 
     describe('close method', function () {
 
-        it('calls registered dispose methods in the revers order of addition',
+        it('calls dispose methods in the reverse order of addition',
             async function () {
 
             const dispose = sinon.stub()
@@ -131,15 +279,31 @@ describe('resource manager', function () {
 
             await resources.close()
 
+            assert.deepStrictEqual(dispose.args, [ [ 3 ], [ 2 ], [ 1 ] ])
+        })
+
+        it('passes callback to dispose function for convenience',
+            async function () {
+
+            const dispose = sinon.spy(function (resource, cb) {
+                setTimeout(() => cb(null), 10)
+            })
+
+            await resources.add(() => 1, dispose)
+            await resources.add(() => 2, dispose)
+            await resources.add(() => 3, dispose)
+
+            await resources.close()
+
             assert.deepStrictEqual(dispose.args, [
-                [ 3 ],
-                [ 2 ],
-                [ 1 ],
+                [ 3, type('function') ],
+                [ 2, type('function') ],
+                [ 1, type('function') ],
             ])
         })
 
-        it('does its best to call all registered disposes even if some of them '
-            + 'throws and returns initial error', async function () {
+        it('calls all registered disposes even if some of them throws'
+            + 'and returns initial error', async function () {
 
             const initError = new Error('Init error.')
             const disposeError1 = new Error('Some error from 1.')
@@ -169,5 +333,44 @@ describe('resource manager', function () {
                 assert.deepStrictEqual(dispose1.args, [ [ 1 ] ])
             }
         })
+
+        it('properly closes resources before all of them are registered',
+            async function () {
+
+            const initErr = new Error('Init error.')
+
+            const init1 = sinon.stub().resolves(timeout(100, 1))
+            const init2 = sinon.stub().callsFake(async function () {
+                await timeout(50)
+                throw initErr
+            })
+            const init3 = sinon.stub().resolves(3)
+            const init4 = sinon.stub().resolves(4)
+            const dispose = sinon.stub()
+
+            resources.add(init1, dispose)
+            const error = resources.add(init2, dispose)
+            resources.add(init3, dispose)
+            resources.close()
+            resources.add(init4, dispose)
+
+            try {
+
+                await error
+
+                throw new Error('Should not be called.')
+
+            } catch (err) {
+                assert.strictEqual(err, initErr)
+                assert.deepStrictEqual(dispose.args, [ [ 1 ], [ 3 ] ])
+                assert(init4.notCalled)
+            }
+        })
     })
 })
+
+function timeout (ms, data) {
+    return new Promise(function (resolve) {
+        setTimeout(() => resolve(data), ms)
+    })
+}

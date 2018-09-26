@@ -1,22 +1,36 @@
 {
   "name": "rmgr",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A resource manager.",
   "main": "index.js",
   "scripts": {
+    "ci": "npm run lint && npm run cover",
     "test": "npm run lint && npm run mocha",
     "mocha": "mocha --recursive test",
     "lint": "eslint index.js",
     "cover": "nyc npm run mocha"
   },
-  "keywords": [],
+  "keywords": [
+    "graceful",
+    "release",
+    "resources",
+    "gracefully"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmdm/promback.git"
+  },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "assert-match": "^1.1.1",
+    "coveralls": "^3.0.2",
     "eslint": "^5.6.0",
     "mocha": "^5.2.0",
     "nyc": "^13.0.1",
     "sinon": "^6.3.4"
+  },
+  "dependencies": {
+    "promback": "^0.1.3"
   }
 }

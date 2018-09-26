@@ -1,7 +1,7 @@
 rmgr
 ====
 
-A resource manager. Release resources gracefully.
+Release resources gracefully.
 
 Example
 =======

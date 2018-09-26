@@ -1,12 +1,14 @@
+const promback = require('promback')
+
 module.exports = function () {
 
-    const disposes = []
+    const disposes = [], pending = []
 
-    let closed = false
+    let closed = false, closing = null
 
     function checkClosed () {
         if (closed) {
-            throw new Error('rmgr instance already closed.')
+            throw new Error('rmgr instance closed.')
         }
     }
 
@@ -16,28 +18,57 @@ module.exports = function () {
 
             checkClosed()
 
-            if (typeof dispose !== 'function') {
-                throw new Error('dispose must be a function.')
-            }
+            if (closing) { return }
 
             try {
-                const resource = await init()
+
+                if (typeof init !== 'function') {
+                    throw new Error('init must be a function.')
+                }
+
+                if (typeof dispose !== 'function') {
+                    throw new Error('dispose must be a function.')
+                }
+
+                init = promback(init)
+                dispose = promback(dispose)
+
+                const initPromise = init()
+
+                pending.push(Promise.resolve(initPromise).then(noop, noop))
+
+                const resource = await initPromise
+
                 disposes.push(function () {
                     return dispose(resource)
                 })
+
                 return resource
+
             } catch (err) {
+
                 try {
                     await resources.close()
-                } catch (closeErr) { err.other = [ closeErr ] }
+                } catch (closeErr) {
+                    err.closeError = closeErr
+                }
+
                 throw err
             }
         },
 
         close: async function () {
+
             checkClosed()
-            closed = true
+
+            if (closing) { return closing.promise }
+
+            closing = defer()
+
+            await Promise.all(pending)
+
             let errs = []
+
             while (disposes.length) {
                 try {
                     const dispose = disposes.pop()
@@ -46,6 +77,10 @@ module.exports = function () {
                     errs.push(err)
                 }
             }
+
+            closed = true
+            closing.resolve()
+
             if (errs.length) {
                 const e = errs.shift()
                 e.other = errs
@@ -55,4 +90,17 @@ module.exports = function () {
     }
 
     return resources
+}
+
+function noop () {}
+
+function defer () {
+
+    let resolve, promise
+
+    promise = new Promise(function (_resolve) {
+        resolve = _resolve
+    })
+
+    return { resolve, promise }
 }
