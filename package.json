@@ -1,11 +1,11 @@
 {
   "name": "rmgr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A resource manager.",
   "main": "index.js",
   "scripts": {
     "ci": "npm run lint && npm run cover",
-    "test": "npm run lint && npm run mocha",
+    "test": "npm run mocha",
     "mocha": "mocha --recursive test",
     "lint": "eslint index.js",
     "cover": "nyc npm run mocha"
