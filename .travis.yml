@@ -3,5 +3,9 @@ node_js:
   - "10.11"
   - "8.11"
 
+services:
+  - redis
+  - mongodb
+
 script: "npm run ci"
 after_script: "cat ./coverage/lcov.info | coveralls"

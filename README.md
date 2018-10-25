@@ -25,7 +25,7 @@ const resources = Resources()
 */
 
 const mongoClient = await resources.add(
-    () => MongoClient.connect(),
+    () => MongoClient.connect('mongodb://localhost'),
     mongoClient => mongoClient.close()
 )
 

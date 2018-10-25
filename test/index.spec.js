@@ -49,20 +49,24 @@ describe('resource manager', function () {
             const result = await resources.add(init, sinon.stub())
 
             assert.strictEqual(result, o)
+
+            assert.deepStrictEqual(init.args, [ [ ] ])
         })
 
-        it('passes callback to init function for convenience',
+        it('passes callback to init function if one specified for convenience',
             async function () {
 
             const o = {}
 
-            const init = function (cb) {
+            const init = sinon.spy(function (cb) {
                 setTimeout(() => cb(null, o), 10)
-            }
+            })
 
             const result = await resources.add(init, sinon.stub())
 
             assert.strictEqual(result, o)
+
+            assert.deepStrictEqual(init.args, [ [ type('function') ] ])
         })
 
         it('calls dispose methods in the reverse order for all previously '
