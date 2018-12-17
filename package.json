@@ -1,6 +1,6 @@
 {
   "name": "rmgr",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A resource manager.",
   "main": "index.js",
   "scripts": {
@@ -36,5 +36,8 @@
   },
   "dependencies": {
     "promback": "^0.1.3"
-  }
+  },
+  "files": [
+    "index.js"
+  ]
 }
