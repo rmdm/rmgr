@@ -1,6 +1,6 @@
 const promback = require('promback')
 
-function initRmgr ({ initTimeout, disposeTimeout } = {}) {
+module.exports = function () {
 
     const disposes = [], pending = []
 
@@ -30,8 +30,8 @@ function initRmgr ({ initTimeout, disposeTimeout } = {}) {
                     throw new Error('dispose must be a function.')
                 }
 
-                init = timeoutable(promback(init), initTimeout)
-                dispose = timeoutable(promback(dispose), disposeTimeout)
+                init = promback(init)
+                dispose = promback(dispose)
 
                 const initPromise = init()
 
@@ -92,14 +92,6 @@ function initRmgr ({ initTimeout, disposeTimeout } = {}) {
     return resources
 }
 
-class TimeoutError extends Error {
-    constructor (message) {
-        super(message)
-        this.name = 'TimeoutError'
-        Error.captureStackTrace(this, TimeoutError)
-    }
-}
-
 function noop () {}
 
 function defer () {
@@ -112,30 +104,3 @@ function defer () {
 
     return { resolve, promise }
 }
-
-function timeoutable (fn, ms) {
-
-    if (typeof ms === 'undefined') { return fn }
-
-    return function (...args) {
-
-        return new Promise(function (resolve, reject) {
-
-            const t = setTimeout(function () {
-                reject(new TimeoutError(`Timeout of ${ms}ms expired.`))
-            }, ms)
-
-            fn(...args)
-                .then(function (result) {
-                    clearTimeout(t)
-                    resolve(result)
-                }, function (err) {
-                    clearTimeout(t)
-                    reject(err)
-                })
-        })
-    }
-}
-
-module.exports = initRmgr
-module.exports.TimeoutError = TimeoutError

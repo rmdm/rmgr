@@ -1,6 +1,7 @@
 const assert = require('assert-match')
 const { type } = assert.matchers
 const sinon = require('sinon')
+const timeoutable = require('timeoutable-wrapper')
 
 const Resources = require('../index')
 
@@ -273,7 +274,7 @@ describe('resource manager', function () {
         it('throws TimeoutError when init takes longer than specified timeout',
             async function () {
 
-            resources = Resources({ initTimeout: 100 })
+            resources = Resources()
 
             const init = sinon.stub().resolves(timeout(200))
 
@@ -281,12 +282,12 @@ describe('resource manager', function () {
 
             try {
 
-                await resources.add(init, dispose)
+                await resources.add(timeoutable(init, 100), dispose)
 
                 shouldNotBeCalled()
 
             } catch (err) {
-                assert(err instanceof Resources.TimeoutError)
+                assert(err instanceof timeoutable.TimeoutError)
                 assert.strictEqual(err.message, 'Timeout of 100ms expired.')
                 assert.strictEqual(err.name, 'TimeoutError')
             }
@@ -295,13 +296,13 @@ describe('resource manager', function () {
         it('successfully closes when specified timeout not reached',
             async function () {
 
-            resources = Resources({ initTimeout: 200 })
+            resources = Resources()
 
             const init = sinon.stub().resolves(timeout(100))
 
             const dispose = sinon.stub().resolves()
 
-            await resources.add(init, dispose)
+            await resources.add(timeoutable(init, 200), dispose)
 
             await resources.close()
         })
@@ -309,7 +310,7 @@ describe('resource manager', function () {
         it('rejects with init error when one occurs before specified timeout',
             async function () {
 
-            resources = Resources({ initTimeout: 100 })
+            resources = Resources()
 
             const e = new Error()
 
@@ -319,7 +320,7 @@ describe('resource manager', function () {
 
             try {
 
-                await resources.add(init, dispose)
+                await resources.add(timeoutable(init, 100), dispose)
 
                 shouldNotBeCalled()
 
@@ -433,13 +434,13 @@ describe('resource manager', function () {
         it('throws TimeoutError when dispose takes longer than specified timeout',
             async function () {
 
-            resources = Resources({ disposeTimeout: 100 })
+            resources = Resources()
 
             const init = sinon.stub().resolves(10)
 
             const dispose = sinon.stub().resolves(timeout(200))
 
-            await resources.add(init, dispose)
+            await resources.add(init, timeoutable(dispose, 100))
 
             try {
 
@@ -448,7 +449,7 @@ describe('resource manager', function () {
                 shouldNotBeCalled()
 
             } catch (err) {
-                assert(err instanceof Resources.TimeoutError)
+                assert(err instanceof timeoutable.TimeoutError)
                 assert.strictEqual(err.message, 'Timeout of 100ms expired.')
                 assert.strictEqual(err.name, 'TimeoutError')
             }
@@ -457,13 +458,13 @@ describe('resource manager', function () {
         it('successfully closes when specified timeout not reached on dispose',
             async function () {
 
-            resources = Resources({ disposeTimeout: 200 })
+            resources = Resources()
 
             const init = sinon.stub().resolves(10)
 
             const dispose = sinon.stub().resolves(timeout(100))
 
-            await resources.add(init, dispose)
+            await resources.add(init, timeoutable(dispose, 200))
 
             await resources.close()
         })
@@ -471,7 +472,7 @@ describe('resource manager', function () {
         it('rejects with dispose error when one occurs before timeout',
             async function () {
 
-            resources = Resources({ disposeTimeout: 200 })
+            resources = Resources()
 
             const e = new Error()
 
@@ -479,7 +480,7 @@ describe('resource manager', function () {
 
             const dispose = sinon.stub().rejects(e)
 
-            await resources.add(init, dispose)
+            await resources.add(init, timeoutable(dispose, 200))
 
             try {
 

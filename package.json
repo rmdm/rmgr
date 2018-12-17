@@ -1,6 +1,6 @@
 {
   "name": "rmgr",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A resource manager.",
   "main": "index.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "type": "git",
     "url": "git+https://github.com/rmdm/rmgr.git"
   },
-  "author": "",
+  "author": "rmdm",
   "license": "ISC",
   "devDependencies": {
     "assert-match": "^1.1.1",
@@ -31,7 +31,8 @@
     "mocha": "^5.2.0",
     "mongodb": "^3.1.8",
     "nyc": "^13.0.1",
-    "sinon": "^6.3.4"
+    "sinon": "^6.3.4",
+    "timeoutable-wrapper": "^0.1.2"
   },
   "dependencies": {
     "promback": "^0.1.3"
