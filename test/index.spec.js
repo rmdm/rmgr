@@ -108,27 +108,29 @@ describe('resource manager', function () {
             await close
         })
 
-        it('throws when closed', async function () {
+        it('does nothing when closed', async function () {
 
             const init1 = sinon.stub().resolves(timeout(10, 1))
             const init2 = sinon.stub().resolves(timeout(10, 2))
+            const throwInit = sinon.stub().throws(new Error())
+            const throwDispose = sinon.stub().throws(new Error())
             const dispose = sinon.stub().resolves(timeout(10))
 
             resources.add(init1, dispose)
 
             const close = resources.close()
 
+            await resources.add(throwInit, throwDispose)
+            await resources.add(throwInit, throwDispose)
+            await resources.close()
+
             await close
 
-            try {
+            await resources.add(throwInit, throwDispose)
+            await resources.add(throwInit, throwDispose)
 
-                await resources.add(init2, dispose)
-
-                shouldNotBeCalled()
-
-            } catch (err) {
-                assert.strictEqual(err.message, 'rmgr instance closed.')
-            }
+            await resources.close()
+            await resources.close()
         })
 
         it('throws init error even when disposes throw', async function () {

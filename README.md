@@ -14,7 +14,7 @@ Usage example
 =============
 
 **rmgr** exposes a factory function that creates an **rmgr** instance.
-For each resource you register its *initialize* and *dispose* functions with the instance's `add` method.
+For each resource you register its `initialize` and `dispose` functions with the instance's `add` method.
 Then, whenever you need to release the resources you just call `close` method:
 
 ```javascript
@@ -179,7 +179,11 @@ const resourceC = await resources.add(
 API
 ===
 
-#### `add (initialize, dispose) => Promise`
+### `rmgr () => resources`
+
+Initializes an **rmgr** instance.
+
+### `resources.add (initialize, dispose) => Promise`
 
 Awaits `initialize` function to resolve, and returns its result. `dispose` is called either when `rmgr.close` is called, or when one of consequent `rmgr.add`'s `initialize` function is thrown. Both `initialize` and `dispose` functions support both callbacks and promises. To use the callback you need to add corresponding parameter to the required `initialize` or `dispose` function.
 
@@ -191,11 +195,11 @@ It is expected to resolve a resource that later will be disposed. When `cb` para
 
 Should dispose previously initialized `resource`. When `cb` param is specified, the function is called with a node-style callback of signature `(err)`.
 
-#### `close () => Promise`
+### `resources.close () => Promise`
 
 Closes all the registered resources by calling corresponding `dispose` functions. All consequent `rmgr.add` calls are ignored.
 
-#### `rmgr.timeout(fn, ms) => Promise`
+### `rmgr.timeout(fn, ms) => Promise`
 
 Many resources include timeouts handling, but some are not. For such cases **rmgr** provides `timeout` wrapper for corresponding `initialize` and `dispose` functions. It throws `rmgr.TimeoutError`, if specified `fn` function is not resolved within `ms` milliseconds. The `fn` function allows using both callbacks and promises.
 
@@ -203,11 +207,11 @@ Many resources include timeouts handling, but some are not. For such cases **rmg
 
 `fn` is just an `initialize` or `dispose` function to wrap. The way they are called is the same as without the wrapping, see [details](#initialize-cb).
 
-#### `rmgr.TimeoutError`
+### `rmgr.TimeoutError`
 
 Instances of the `TimeoutError` are thrown by `rmgr.timeout` when the timeout is expired.
 
-#### `rmgr.using(PromiseLib) => rmgr`
+### `rmgr.using(PromiseLib) => rmgr`
 
 Returns **rmgr** factory function that uses specified `PromiseLib`.
 
@@ -218,8 +222,8 @@ Miscellaneous
 
 `process.exit` is a hard way to close your app, which may have unforeseen side effects on your resources, so, use it as the last resort. It still has its use even with **rmgr** but it's well defined. You should always call `process.exit` in the following two cases:
 
-- when `rmdm.close` thrown an error (see [the usage example](#usage-example)),
-- or, in case you are using `timeoutable`, when `rmgr.add` thrown the `TimeoutError`.
+- when `rmdm.close` is rejected with an error (see [the usage example](#usage-example)),
+- or, in case you are using `timeoutable`, when `rmgr.add` rejected with a `rmgr.TimeoutError`.
 
 ### What to count as a resource?
 
@@ -227,7 +231,7 @@ A rule of a thumb is that you would add to **rmgr** everything that will prevent
 
 ### Combining several **rmgr**s
 
-**rmgr**s can even be combined, though it should be rarely needed:
+**rmgr**s can be combined, though it should be rarely needed:
 
 ```javascript
 const Resources = require('rmrg')

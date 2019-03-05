@@ -22,19 +22,11 @@ function using (PromiseLib) {
 
         const disposes = [], pending = []
 
-        let closed = false, closing = null
-
-        function checkClosed () {
-            if (closed) {
-                throw new Error('rmgr instance closed.')
-            }
-        }
+        let closing = null
 
         const resources = {
 
             add: async function (init, dispose) {
-
-                checkClosed()
 
                 if (closing) { return }
 
@@ -77,8 +69,6 @@ function using (PromiseLib) {
 
             close: async function () {
 
-                checkClosed()
-
                 if (closing) { return closing.promise }
 
                 closing = defer()
@@ -96,7 +86,6 @@ function using (PromiseLib) {
                     }
                 }
 
-                closed = true
                 closing.resolve()
 
                 if (errs.length) {
