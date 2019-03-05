@@ -1,6 +1,6 @@
 {
   "name": "rmgr",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "release resources gracefully",
   "main": "index.js",
   "scripts": {
@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "promback": "^1.0.1",
-    "timeoutable-wrapper": "^0.1.2"
+    "timeoutable-wrapper": "^0.2.0"
   },
   "files": [
     "index.js"
