@@ -1,4 +1,4 @@
-const Resources = require('../')
+const rmgr = require('../')
 
 const { MongoClient } = require('mongodb')
 const Redis = require('ioredis')
@@ -8,9 +8,9 @@ describe('readme', function () {
 
     describe('main example', function () {
 
-        it('works', async function () {
+        it('closes all resources', async function () {
 
-            const resources = Resources()
+            const resources = rmgr()
 
             const mongoClient = await resources.add(
                 () => MongoClient.connect(
@@ -19,8 +19,16 @@ describe('readme', function () {
             )
 
             const redis = await resources.add(
-                () => new Redis(),
-                (redisClient, cb) => redisClient.quit(cb)
+                (cb) => {
+                    const redis = new Redis({ retryStrategy: () => false })
+                    redis.once('error', cb)
+                    redis.once('connect', function () {
+                        cb(null, redis)
+                    })
+                },
+                (redisClient, cb) => {
+                    redisClient.quit(cb)
+                }
             )
 
             const server = await resources.add(
@@ -32,7 +40,7 @@ describe('readme', function () {
                         cb(null, server)
                     })
                 },
-                (server, cb) => server.close(cb)
+                rmgr.timeout((server, cb) => server.close(cb), 100)
             )
 
             await resources.close()

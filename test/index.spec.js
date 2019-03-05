@@ -1,16 +1,15 @@
 const assert = require('assert-match')
 const { type } = assert.matchers
 const sinon = require('sinon')
-const timeoutable = require('timeoutable-wrapper')
 
-const Resources = require('../index')
+const rmgr = require('../index')
 
 describe('resource manager', function () {
 
     let resources
 
     beforeEach(function () {
-        resources = Resources()
+        resources = rmgr()
     })
 
     describe('add method', function () {
@@ -24,7 +23,7 @@ describe('resource manager', function () {
                 shouldNotBeCalled()
 
             } catch (err) {
-                assert.strictEqual(err.message, 'init must be a function.')
+                assert.strictEqual(err.message, '"init" must be a function.')
             }
         })
 
@@ -37,7 +36,7 @@ describe('resource manager', function () {
                 shouldNotBeCalled()
 
             } catch (err) {
-                assert.strictEqual(err.message, 'dispose must be a function.')
+                assert.strictEqual(err.message, '"dispose" must be a function.')
             }
         })
 
@@ -274,7 +273,7 @@ describe('resource manager', function () {
         it('throws TimeoutError when init takes longer than specified timeout',
             async function () {
 
-            resources = Resources()
+            resources = rmgr()
 
             const init = sinon.stub().resolves(timeout(200))
 
@@ -282,12 +281,12 @@ describe('resource manager', function () {
 
             try {
 
-                await resources.add(timeoutable(init, 100), dispose)
+                await resources.add(rmgr.timeout(init, 100), dispose)
 
                 shouldNotBeCalled()
 
             } catch (err) {
-                assert(err instanceof timeoutable.TimeoutError)
+                assert(err instanceof rmgr.TimeoutError)
                 assert.strictEqual(err.message, 'Timeout of 100ms expired.')
                 assert.strictEqual(err.name, 'TimeoutError')
             }
@@ -296,13 +295,13 @@ describe('resource manager', function () {
         it('successfully closes when specified timeout not reached',
             async function () {
 
-            resources = Resources()
+            resources = rmgr()
 
             const init = sinon.stub().resolves(timeout(100))
 
             const dispose = sinon.stub().resolves()
 
-            await resources.add(timeoutable(init, 200), dispose)
+            await resources.add(rmgr.timeout(init, 200), dispose)
 
             await resources.close()
         })
@@ -310,7 +309,7 @@ describe('resource manager', function () {
         it('rejects with init error when one occurs before specified timeout',
             async function () {
 
-            resources = Resources()
+            resources = rmgr()
 
             const e = new Error()
 
@@ -320,7 +319,7 @@ describe('resource manager', function () {
 
             try {
 
-                await resources.add(timeoutable(init, 100), dispose)
+                await resources.add(rmgr.timeout(init, 100), dispose)
 
                 shouldNotBeCalled()
 
@@ -434,13 +433,13 @@ describe('resource manager', function () {
         it('throws TimeoutError when dispose takes longer than specified timeout',
             async function () {
 
-            resources = Resources()
+            resources = rmgr()
 
             const init = sinon.stub().resolves(10)
 
             const dispose = sinon.stub().resolves(timeout(200))
 
-            await resources.add(init, timeoutable(dispose, 100))
+            await resources.add(init, rmgr.timeout(dispose, 100))
 
             try {
 
@@ -449,7 +448,7 @@ describe('resource manager', function () {
                 shouldNotBeCalled()
 
             } catch (err) {
-                assert(err instanceof timeoutable.TimeoutError)
+                assert(err instanceof rmgr.TimeoutError)
                 assert.strictEqual(err.message, 'Timeout of 100ms expired.')
                 assert.strictEqual(err.name, 'TimeoutError')
             }
@@ -458,13 +457,13 @@ describe('resource manager', function () {
         it('successfully closes when specified timeout not reached on dispose',
             async function () {
 
-            resources = Resources()
+            resources = rmgr()
 
             const init = sinon.stub().resolves(10)
 
             const dispose = sinon.stub().resolves(timeout(100))
 
-            await resources.add(init, timeoutable(dispose, 200))
+            await resources.add(init, rmgr.timeout(dispose, 200))
 
             await resources.close()
         })
@@ -472,7 +471,7 @@ describe('resource manager', function () {
         it('rejects with dispose error when one occurs before timeout',
             async function () {
 
-            resources = Resources()
+            resources = rmgr()
 
             const e = new Error()
 
@@ -480,7 +479,7 @@ describe('resource manager', function () {
 
             const dispose = sinon.stub().rejects(e)
 
-            await resources.add(init, timeoutable(dispose, 200))
+            await resources.add(init, rmgr.timeout(dispose, 200))
 
             try {
 
