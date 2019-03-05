@@ -173,7 +173,7 @@ const resourceC = await resources.add(
 )
 
 // yes, with **rmgr** try-catch is not required to close all the resources
-// in a graceful way (it may only be needed to catch the initialization error)
+// in a graceful way (it may only be needed to catch an initialization error)
 ```
 
 API
@@ -181,15 +181,15 @@ API
 
 ### `rmgr () => resources`
 
-Initializes an **rmgr** instance.
+A factory function that initializes an **rmgr** instance.
 
 ### `resources.add (initialize, dispose) => Promise`
 
-Awaits `initialize` function to resolve, and returns its result. `dispose` is called either when `rmgr.close` is called, or when one of consequent `rmgr.add`'s `initialize` function is thrown. Both `initialize` and `dispose` functions support both callbacks and promises. To use the callback you need to add corresponding parameter to the required `initialize` or `dispose` function.
+Awaits `initialize` function to resolve, and returns its result. `dispose` is called either when `resources.close` is called, or when one of consequent `resources.add`'s `initialize` function is thrown. Both `initialize` and `dispose` functions support both callbacks and promises. To use the callback you need to add corresponding parameter to the required `initialize` or `dispose` function.
 
 ##### `initialize ([cb])`
 
-It is expected to resolve a resource that later will be disposed. When `cb` param is specified, the function is called with the ordinary node-style callback of signature `(err, result)`.
+It is expected to resolve a resource that later will be disposed. When `cb` param is specified, the function is called with the ordinary node-style callback of signature `(err, resource)`.
 
 ##### `dispose (resource, [cb])`
 
@@ -197,7 +197,7 @@ Should dispose previously initialized `resource`. When `cb` param is specified, 
 
 ### `resources.close () => Promise`
 
-Closes all the registered resources by calling corresponding `dispose` functions. All consequent `rmgr.add` calls are ignored.
+Closes all the registered resources by calling corresponding `dispose` functions in the reverse order of initialization. All consequent `resources.add` and `resources.close` calls are ignored.
 
 ### `rmgr.timeout(fn, ms) => Promise`
 
@@ -223,7 +223,7 @@ Miscellaneous
 `process.exit` is a hard way to close your app, which may have unforeseen side effects on your resources, so, use it as the last resort. It still has its use even with **rmgr** but it's well defined. You should always call `process.exit` in the following two cases:
 
 - when `rmdm.close` is rejected with an error (see [the usage example](#usage-example)),
-- or, in case you are using `timeoutable`, when `rmgr.add` rejected with a `rmgr.TimeoutError`.
+- or, in case you are using `timeoutable`, when `resources.add` is rejected with a `rmgr.TimeoutError`.
 
 ### What to count as a resource?
 
