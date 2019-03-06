@@ -223,7 +223,7 @@ Miscellaneous
 `process.exit` is a hard way to close your app, which may have unforeseen side effects on your resources, so, use it as the last resort. It still has its use even with **rmgr** but it's well defined. You should always call `process.exit` in the following two cases:
 
 - when `rmdm.close` is rejected with an error (see [the usage example](#usage-example)),
-- or, in case you are using `timeoutable`, when `resources.add` is rejected with a `rmgr.TimeoutError`.
+- or, in case you are using `rmgr.timeout`, when `resources.add` is rejected with a `rmgr.TimeoutError`.
 
 ### What to count as a resource?
 

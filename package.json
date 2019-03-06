@@ -1,6 +1,6 @@
 {
   "name": "rmgr",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "release resources gracefully",
   "main": "index.js",
   "scripts": {
